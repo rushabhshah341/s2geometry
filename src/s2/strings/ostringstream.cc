@@ -13,9 +13,9 @@
 // limitations under the License.
 //
 
-#include "s2/strings/ostringstream.h"
-
 #include <cassert>
+
+#include "s2/strings/ostringstream.h"
 
 namespace strings {
 

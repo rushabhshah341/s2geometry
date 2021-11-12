@@ -22,12 +22,10 @@
 #include <cstdio>
 #include <iosfwd>
 #include <iostream>
+#include <unordered_map>
 #include <vector>
 
 #include <gtest/gtest.h>
-
-#include "absl/base/macros.h"
-#include "absl/container/flat_hash_map.h"
 
 #include "s2/base/logging.h"
 #include "s2/r2.h"
@@ -39,11 +37,11 @@
 #include "s2/s2testing.h"
 #include "absl/base/macros.h"
 
-using absl::flat_hash_map;
 using S2::internal::kPosToOrientation;
 using std::fabs;
 using std::min;
 using std::string;
+using std::unordered_map;
 using std::vector;
 
 static S2CellId GetCellId(double lat_degrees, double lng_degrees) {
@@ -182,7 +180,7 @@ TEST(S2CellId, Advance) {
             id.child_begin(S2CellId::kMaxLevel).advance(256));
   EXPECT_EQ(S2CellId::FromFacePosLevel(5, 0, S2CellId::kMaxLevel),
             S2CellId::FromFacePosLevel(1, 0, S2CellId::kMaxLevel)
-                .advance(uint64{4} << (2 * S2CellId::kMaxLevel)));
+            .advance(4ULL << (2 * S2CellId::kMaxLevel)));
 
   // Check basic properties of advance_wrap().
   EXPECT_EQ(S2CellId::FromFace(1), S2CellId::Begin(0).advance_wrap(7));
@@ -195,12 +193,12 @@ TEST(S2CellId, Advance) {
             id.child_begin(S2CellId::kMaxLevel).advance_wrap(256));
   EXPECT_EQ(S2CellId::FromFacePosLevel(1, 0, S2CellId::kMaxLevel),
             S2CellId::FromFacePosLevel(5, 0, S2CellId::kMaxLevel)
-                .advance_wrap(uint64{2} << (2 * S2CellId::kMaxLevel)));
+            .advance_wrap(2ULL << (2 * S2CellId::kMaxLevel)));
 }
 
 TEST(S2CellId, DistanceFromBegin) {
   EXPECT_EQ(6, S2CellId::End(0).distance_from_begin());
-  EXPECT_EQ(6 * (int64{1} << (2 * S2CellId::kMaxLevel)),
+  EXPECT_EQ(6 * (1LL << (2 * S2CellId::kMaxLevel)),
             S2CellId::End(S2CellId::kMaxLevel).distance_from_begin());
 
   EXPECT_EQ(0, S2CellId::Begin(0).distance_from_begin());
@@ -292,19 +290,25 @@ TEST(S2CellId, Tokens) {
     string token = id.ToToken();
     EXPECT_LE(token.size(), 16);
     EXPECT_EQ(id, S2CellId::FromToken(token));
+    EXPECT_EQ(id, S2CellId::FromToken(token.data(), token.size()));
   }
   // Check that invalid cell ids can be encoded, and round-trip is
   // the identity operation.
   string token = S2CellId::None().ToToken();
   EXPECT_EQ(S2CellId::None(), S2CellId::FromToken(token));
+  EXPECT_EQ(S2CellId::None(), S2CellId::FromToken(token.data(), token.size()));
 
   // Sentinel is invalid.
   token = S2CellId::Sentinel().ToToken();
   EXPECT_EQ(S2CellId::FromToken(token), S2CellId::Sentinel());
+  EXPECT_EQ(S2CellId::FromToken(token.data(), token.size()),
+            S2CellId::Sentinel());
 
   // Check an invalid face.
   token = S2CellId::FromFace(7).ToToken();
   EXPECT_EQ(S2CellId::FromToken(token), S2CellId::FromFace(7));
+  EXPECT_EQ(S2CellId::FromToken(token.data(), token.size()),
+            S2CellId::FromFace(7));
 
   // Check that supplying tokens with non-alphanumeric characters
   // returns S2CellId::None().
@@ -350,7 +354,7 @@ static const int kMaxExpandLevel = 3;
 
 static void ExpandCell(
     S2CellId parent, vector<S2CellId>* cells,
-    flat_hash_map<S2CellId, S2CellId, S2CellIdHash>* parent_map) {
+    unordered_map<S2CellId, S2CellId, S2CellIdHash>* parent_map) {
   cells->push_back(parent);
   if (parent.level() == kMaxExpandLevel) return;
   int i, j, orientation;
@@ -381,7 +385,7 @@ static void ExpandCell(
 
 TEST(S2CellId, Containment) {
   // Test contains() and intersects().
-  flat_hash_map<S2CellId, S2CellId, S2CellIdHash> parent_map;
+  unordered_map<S2CellId, S2CellId, S2CellIdHash> parent_map;
   vector<S2CellId> cells;
   for (int face = 0; face < 6; ++face) {
     ExpandCell(S2CellId::FromFace(face), &cells, &parent_map);

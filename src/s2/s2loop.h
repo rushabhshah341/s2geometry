@@ -25,9 +25,6 @@
 #include <map>
 #include <vector>
 
-#include "absl/base/macros.h"
-#include "absl/types/span.h"
-
 #include "s2/base/integral_types.h"
 #include "s2/base/logging.h"
 #include "s2/_fp_contract_off.h"
@@ -40,6 +37,7 @@
 #include "s2/s2pointutil.h"
 #include "s2/s2region.h"
 #include "s2/s2shape_index.h"
+#include "absl/base/macros.h"
 #include "s2/util/math/matrix3x3.h"
 #include "s2/util/math/vector.h"
 
@@ -91,7 +89,7 @@ class S2Loop final : public S2Region {
   S2Loop();
 
   // Convenience constructor that calls Init() with the given vertices.
-  explicit S2Loop(absl::Span<const S2Point> vertices);
+  explicit S2Loop(const std::vector<S2Point>& vertices);
 
   // Convenience constructor to disable the automatic validity checking
   // controlled by the --s2debug flag.  Example:
@@ -106,13 +104,13 @@ class S2Loop final : public S2Region {
   //
   // The main reason to use this constructor is if you intend to call
   // IsValid() explicitly.  See set_s2debug_override() for details.
-  S2Loop(absl::Span<const S2Point> vertices, S2Debug override);
+  S2Loop(const std::vector<S2Point>& vertices, S2Debug override);
 
   // Initialize a loop with given vertices.  The last vertex is implicitly
   // connected to the first.  All points should be unit length.  Loops must
   // have at least 3 vertices (except for the empty and full loops, see
   // kEmpty and kFull).  This method may be called multiple times.
-  void Init(absl::Span<const S2Point> vertices);
+  void Init(const std::vector<S2Point>& vertices);
 
   // A special vertex chain of length 1 that creates an empty loop (i.e., a
   // loop with no edges that contains no points).  Example usage:
@@ -196,12 +194,6 @@ class S2Loop final : public S2Region {
     if (j < 0) j = i;
     if (is_hole()) j = num_vertices() - 1 - j;
     return vertices_[j];
-  }
-
-  // Returns an S2PointLoopSpan containing the loop vertices, for use with the
-  // functions defined in s2loop_measures.h.
-  S2PointLoopSpan vertices_span() const {
-    return S2PointLoopSpan(vertices_, num_vertices());
   }
 
   // Returns true if this is the special empty loop that contains no points.
@@ -377,7 +369,7 @@ class S2Loop final : public S2Region {
                                                  S1Angle radius,
                                                  int num_vertices);
 
-  // Returns the total number of bytes used by the loop.
+  // Returnss the total number of bytes used by the loop.
   size_t SpaceUsed() const;
 
   ////////////////////////////////////////////////////////////////////////
@@ -528,6 +520,12 @@ class S2Loop final : public S2Region {
   // Internal copy constructor used only by Clone() that makes a deep copy of
   // its argument.
   S2Loop(const S2Loop& src);
+
+  // Returns an S2PointLoopSpan containing the loop vertices, for use with the
+  // functions defined in s2loop_measures.h.
+  S2PointLoopSpan vertices_span() const {
+    return S2PointLoopSpan(vertices_, num_vertices());
+  }
 
   // Returns true if this loop contains S2::Origin().
   bool contains_origin() const { return origin_inside_; }

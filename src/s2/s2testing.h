@@ -24,8 +24,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/base/macros.h"
-
 #include "s2/base/commandlineflags.h"
 #include "s2/base/integral_types.h"
 #include "s2/_fp_contract_off.h"
@@ -33,6 +31,7 @@
 #include "s2/s1angle.h"
 #include "s2/s1chord_angle.h"
 #include "s2/s2cell_id.h"
+#include "absl/base/macros.h"
 #include "s2/util/math/matrix3x3.h"
 
 class S1Angle;

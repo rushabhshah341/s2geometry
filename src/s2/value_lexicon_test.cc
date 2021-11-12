@@ -25,7 +25,6 @@
 #include "s2/s2point.h"
 
 using absl::make_unique;
-using std::min;
 
 TEST(ValueLexicon, DuplicateValues) {
   ValueLexicon<int64> lex;

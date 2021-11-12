@@ -16,7 +16,6 @@
 #ifndef S2_BASE_INTEGRAL_TYPES_H_
 #define S2_BASE_INTEGRAL_TYPES_H_
 
-// NOLINTBEGIN(runtime/int)
 using int8 = signed char;
 using int16 = short;
 using int32 = int;
@@ -28,6 +27,5 @@ using uint32 = unsigned int;
 using uint64 = unsigned long long;
 
 using uword_t = unsigned long;
-// NOLINTEND(runtime/int)
 
 #endif  // S2_BASE_INTEGRAL_TYPES_H_

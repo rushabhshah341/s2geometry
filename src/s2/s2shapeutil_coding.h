@@ -23,12 +23,15 @@
 //  - Allow control over decoding tradeoffs (e.g., whether to decode data
 //    immediately or lazily).
 //
+//  - Don't force all S2Shape types to have the same Encode() method.  Some
+//    implementations may want extra parameters.
+//
+//  - Support custom encodings of shape vectors; e.g., if all shapes are
+//    of a known type, then there is no need to tag them individually.
+//
 //  - Support client-defined S2Shape types.
 //
 //  - Support client-defined encodings of standard S2Shape types.
-//
-//  - Support custom encodings of shape vectors; e.g., if all shapes are of a
-//    known type, then there is no need to tag them individually.
 
 #ifndef S2_S2SHAPEUTIL_CODING_H_
 #define S2_S2SHAPEUTIL_CODING_H_
@@ -47,14 +50,12 @@ namespace s2shapeutil {
 // (e.g., shape->type_tag()); the caller is responsible for encoding this
 // separately if necessary.
 //
-// The purpose of ShapeEncoder is to allow implementing custom encodings
-// without subclassing the affected S2Shape types.  For example, you can
-// define an encoder that wraps one of the standard functions and adds
-// exceptions:
+// Note that you can add your own encodings and/or shape types by wrapping one
+// of the standard functions and adding exceptions:
 //
 // void MyShapeEncoder(const S2Shape& shape, Encoder* encoder) {
-//   if (shape.type_tag() == S2LaxPolygonShape::kTypeTag) {
-//     MyEncodeLaxPolygon(shape, encoder);
+//   if (shape.type_tag() == MyShape::kTypeTag) {
+//     down_cast<const MyShape*>(&shape)->Encode(encoder);
 //     return true;
 //   } else {
 //     return CompactEncodeShape(shape, encoder);
@@ -220,13 +221,11 @@ class WrappedShapeFactory : public S2ShapeIndex::ShapeFactory {
 // This is useful for encoding experimental or locally defined types, or when
 // the S2Shape type in a given index is known in advance.
 //
-// REQUIRES: "Shape" must have an Encode(Encoder*, s2coding::CodingHint) method.
+// REQUIRES: The Shape class must have an Encode(Encoder*) method.
 // REQUIRES: "encoder" uses the default constructor, so that its buffer
 //           can be enlarged as necessary by calling Ensure(int).
 template <class Shape>
-void EncodeHomogeneousShapes(
-    const S2ShapeIndex& index, Encoder* encoder,
-    s2coding::CodingHint hint = s2coding::CodingHint::COMPACT);
+void EncodeHomogeneousShapes(const S2ShapeIndex& index, Encoder* encoder);
 
 // A ShapeFactory that decodes shapes of a given fixed type (e.g.,
 // EncodedS2LaxPolylineShape).  Example usage:
@@ -256,12 +255,11 @@ class HomogeneousShapeFactory : public S2ShapeIndex::ShapeFactory {
 
 
 template <class Shape>
-void EncodeHomogeneousShapes(const S2ShapeIndex& index, Encoder* encoder,
-                             s2coding::CodingHint hint) {
+void EncodeHomogeneousShapes(const S2ShapeIndex& index, Encoder* encoder) {
   s2coding::StringVectorEncoder shape_vector;
   for (S2Shape* shape : index) {
     S2_DCHECK(shape != nullptr);
-    down_cast<Shape*>(shape)->Encode(shape_vector.AddViaEncoder(), hint);
+    down_cast<Shape*>(shape)->Encode(shape_vector.AddViaEncoder());
   }
   shape_vector.Encode(encoder);
 }
@@ -277,7 +275,6 @@ std::unique_ptr<S2Shape> HomogeneousShapeFactory<Shape>::operator[](
   Decoder decoder = encoded_shapes_.GetDecoder(shape_id);
   auto shape = absl::make_unique<Shape>();
   if (!shape->Init(&decoder)) return nullptr;
-  // Some platforms (e.g. NaCl) require the following conversion.
   return std::move(shape);  // Converts from Shape to S2Shape.
 }
 

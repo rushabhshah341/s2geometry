@@ -20,7 +20,6 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include "absl/strings/string_view.h"
 #include "s2/s2lax_loop_shape.h"
 #include "s2/s2text_format.h"
 
@@ -31,7 +30,7 @@ namespace s2shapeutil {
 
 class TestLaxLoop : public S2LaxLoopShape {
  public:
-  explicit TestLaxLoop(absl::string_view vertex_str) {
+  explicit TestLaxLoop(const string& vertex_str) {
     vector<S2Point> vertices = s2textformat::ParsePoints(vertex_str);
     Init(vertices);
   }

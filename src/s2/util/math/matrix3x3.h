@@ -206,7 +206,7 @@ class Matrix3x3 {
   }
 
   // Return the determinant of the matrix
-  inline VType Det() const {
+  inline VType Det(void) const {
     return m_[0][0] * m_[1][1] * m_[2][2]
          + m_[0][1] * m_[1][2] * m_[2][0]
          + m_[0][2] * m_[1][0] * m_[2][1]
@@ -216,7 +216,9 @@ class Matrix3x3 {
   }
 
   // Return the trace of the matrix
-  inline VType Trace() const { return m_[0][0] + m_[1][1] + m_[2][2]; }
+  inline VType Trace(void) const {
+    return m_[0][0] + m_[1][1] + m_[2][2];
+  }
 
   // Return a pointer to the data array for interface with other libraries
   // like opencv
@@ -256,7 +258,7 @@ class Matrix3x3 {
   }
 
   // Return the transposed matrix
-  inline Matrix3x3 Transpose() const {
+  inline Matrix3x3 Transpose(void) const {
     return Matrix3x3(m_[0][0], m_[1][0], m_[2][0],
                      m_[0][1], m_[1][1], m_[2][1],
                      m_[0][2], m_[1][2], m_[2][2]);
@@ -264,7 +266,7 @@ class Matrix3x3 {
 
   // Return the transposed of the matrix of the cofactors
   // (Useful for inversion for example)
-  inline Matrix3x3 ComatrixTransposed() const {
+  inline Matrix3x3 ComatrixTransposed(void) const {
     return Matrix3x3(
       m_[1][1] * m_[2][2] - m_[2][1] * m_[1][2],
       m_[2][1] * m_[0][2] - m_[0][1] * m_[2][2],
@@ -279,7 +281,7 @@ class Matrix3x3 {
       m_[0][0] * m_[1][1] - m_[1][0] * m_[0][1]);
   }
   // Matrix inversion
-  inline Matrix3x3 Inverse() const {
+  inline Matrix3x3 Inverse(void) const {
     VType det = Det();
     S2_CHECK_NE(det, VType(0)) << " Can't inverse. Determinant = 0.";
     return (VType(1) / det) * ComatrixTransposed();
@@ -350,7 +352,7 @@ class Matrix3x3 {
   }
 
   // Return the identity matrix
-  static inline Matrix3x3 Identity() {
+  static inline Matrix3x3 Identity(void) {
     Matrix3x3 temp;
     temp.Set(VType(1), VType(0), VType(0),  //
              VType(0), VType(1), VType(0),  //
@@ -359,7 +361,9 @@ class Matrix3x3 {
   }
 
   // Return a matrix full of zeros
-  static inline Matrix3x3 Zero() { return Matrix3x3(); }
+  static inline Matrix3x3 Zero(void) {
+    return Matrix3x3();
+  }
 
   // Return a diagonal matrix with the coefficients in v
   static inline Matrix3x3 Diagonal(const MVector &v) {
@@ -391,7 +395,7 @@ class Matrix3x3 {
     Matrix3x3 Wv = Matrix3x3::AntiSym3(w);
     Matrix3x3 I = Matrix3x3::Identity();
     Matrix3x3 A = Matrix3x3::Sym3(w);
-    R = (1 - std::cos(theta)) * A + std::sin(theta) * Wv + std::cos(theta) * I;
+    R = (1 - cos(theta)) * A + sin(theta) * Wv + cos(theta) * I;
     return R;
   }
 
@@ -414,7 +418,7 @@ class Matrix3x3 {
         sum += m_[i][j] * m_[i][j];
       }
     }
-    return std::sqrt(sum);
+    return sqrt(sum);
   }
 
   // Finds the eigen values of the matrix. Return the number of real eigenvalues
@@ -559,11 +563,6 @@ class Matrix3x3 {
       }
     }
     return out;
-  }
-
-  template <typename H>
-  friend H AbslHashValue(H h, const Matrix3x3& m) {
-    return H::combine_contiguous(std::move(h), m.Data(), 3 * 3);
   }
 };
 

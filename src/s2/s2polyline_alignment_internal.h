@@ -26,7 +26,7 @@
 
 namespace s2polyline_alignment {
 
-constexpr double DOUBLE_MAX = std::numeric_limits<double>::max();
+static constexpr double DOUBLE_MAX = std::numeric_limits<double>::max();
 
 // Alias for a 2d Dynamic Programming table.
 typedef std::vector<std::vector<double>> CostTable;

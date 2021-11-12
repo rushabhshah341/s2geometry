@@ -27,7 +27,6 @@
 #include "s2/s2point_vector_shape.h"
 #include "s2/s2polygon.h"
 #include "s2/s2polyline.h"
-#include "s2/s2wrapped_shape.h"
 
 using absl::make_unique;
 using std::make_shared;
@@ -39,27 +38,62 @@ using CodingHint = s2coding::CodingHint;
 namespace s2shapeutil {
 
 bool FastEncodeShape(const S2Shape& shape, Encoder* encoder) {
-  uint32 tag = shape.type_tag();
-  if (tag == S2Shape::kNoTypeTag) {
-    S2_LOG(DFATAL) << "Unsupported S2Shape type: " << tag;
-    return false;
+  switch (shape.type_tag()) {
+    case S2Polygon::Shape::kTypeTag: {
+      down_cast<const S2Polygon::Shape*>(&shape)->EncodeUncompressed(encoder);
+      return true;
+    }
+    case S2Polyline::Shape::kTypeTag: {
+      down_cast<const S2Polyline::Shape*>(&shape)->Encode(encoder);
+      return true;
+    }
+    case S2PointVectorShape::kTypeTag: {
+      down_cast<const S2PointVectorShape*>(&shape)->Encode(
+          encoder, CodingHint::FAST);
+      return true;
+    }
+    case S2LaxPolylineShape::kTypeTag: {
+      down_cast<const S2LaxPolylineShape*>(&shape)->Encode(
+          encoder, CodingHint::FAST);
+      return true;
+    }
+    case S2LaxPolygonShape::kTypeTag: {
+      down_cast<const S2LaxPolygonShape*>(&shape)->Encode(
+          encoder, CodingHint::FAST);
+      return true;
+    }
+    default: {
+      S2_LOG(DFATAL) << "Unsupported S2Shape type: " << shape.type_tag();
+      return false;
+    }
   }
-  // Update the following constant when adding new S2Shape encodings.
-  S2_DCHECK_LT(shape.type_tag(), S2Shape::kNextAvailableTypeTag);
-  shape.Encode(encoder, CodingHint::FAST);
-  return true;
 }
 
 bool CompactEncodeShape(const S2Shape& shape, Encoder* encoder) {
-  uint32 tag = shape.type_tag();
-  if (tag == S2Shape::kNoTypeTag) {
-    S2_LOG(DFATAL) << "Unsupported S2Shape type: " << tag;
-    return false;
+  switch (shape.type_tag()) {
+    case S2Polygon::Shape::kTypeTag: {
+      down_cast<const S2Polygon::Shape*>(&shape)->Encode(encoder);
+      return true;
+    }
+    case S2PointVectorShape::kTypeTag: {
+      down_cast<const S2PointVectorShape*>(&shape)->Encode(
+          encoder, CodingHint::COMPACT);
+      return true;
+    }
+    case S2LaxPolylineShape::kTypeTag: {
+      down_cast<const S2LaxPolylineShape*>(&shape)->Encode(
+          encoder, CodingHint::COMPACT);
+      return true;
+    }
+    case S2LaxPolygonShape::kTypeTag: {
+      down_cast<const S2LaxPolygonShape*>(&shape)->Encode(
+          encoder, CodingHint::COMPACT);
+      return true;
+    }
+    default: {
+      return FastEncodeShape(shape, encoder);
+    }
   }
-  // Update the following constant when adding new S2Shape encodings.
-  S2_DCHECK_LT(shape.type_tag(), S2Shape::kNextAvailableTypeTag);
-  shape.Encode(encoder, CodingHint::COMPACT);
-  return true;
 }
 
 // A ShapeDecoder that fully decodes an S2Shape of the given type.  After this
@@ -69,28 +103,27 @@ unique_ptr<S2Shape> FullDecodeShape(S2Shape::TypeTag tag, Decoder* decoder) {
     case S2Polygon::Shape::kTypeTag: {
       auto shape = make_unique<S2Polygon::OwningShape>();
       if (!shape->Init(decoder)) return nullptr;
-      // Some platforms (e.g. NaCl) require the following conversion.
-      return std::move(shape);  // Converts to S2Shape.
+      return std::move(shape);
     }
     case S2Polyline::Shape::kTypeTag: {
       auto shape = make_unique<S2Polyline::OwningShape>();
       if (!shape->Init(decoder)) return nullptr;
-      return std::move(shape);  // Converts to S2Shape.
+      return std::move(shape);
     }
     case S2PointVectorShape::kTypeTag: {
       auto shape = make_unique<S2PointVectorShape>();
       if (!shape->Init(decoder)) return nullptr;
-      return std::move(shape);  // Converts to S2Shape.
+      return std::move(shape);
     }
     case S2LaxPolylineShape::kTypeTag: {
       auto shape = make_unique<S2LaxPolylineShape>();
       if (!shape->Init(decoder)) return nullptr;
-      return std::move(shape);  // Converts to S2Shape.
+      return std::move(shape);
     }
     case S2LaxPolygonShape::kTypeTag: {
       auto shape = make_unique<S2LaxPolygonShape>();
       if (!shape->Init(decoder)) return nullptr;
-      return std::move(shape);  // Converts to S2Shape.
+      return std::move(shape);
     }
     default: {
       S2_LOG(DFATAL) << "Unsupported S2Shape type: " << tag;
@@ -104,18 +137,17 @@ unique_ptr<S2Shape> LazyDecodeShape(S2Shape::TypeTag tag, Decoder* decoder) {
     case S2PointVectorShape::kTypeTag: {
       auto shape = make_unique<EncodedS2PointVectorShape>();
       if (!shape->Init(decoder)) return nullptr;
-      // Some platforms (e.g. NaCl) require the following conversion.
-      return std::move(shape);  // Converts to S2Shape.
+      return std::move(shape);
     }
     case S2LaxPolylineShape::kTypeTag: {
       auto shape = make_unique<EncodedS2LaxPolylineShape>();
       if (!shape->Init(decoder)) return nullptr;
-      return std::move(shape);  // Converts to S2Shape.
+      return std::move(shape);
     }
     case S2LaxPolygonShape::kTypeTag: {
       auto shape = make_unique<EncodedS2LaxPolygonShape>();
       if (!shape->Init(decoder)) return nullptr;
-      return std::move(shape);  // Converts to S2Shape.
+      return std::move(shape);
     }
     default: {
       return FullDecodeShape(tag, decoder);
@@ -131,9 +163,14 @@ bool EncodeTaggedShapes(const S2ShapeIndex& index,
     Encoder* sub_encoder = shape_vector.AddViaEncoder();
     if (shape == nullptr) continue;  // Encode as zero bytes.
 
+    uint32 tag = shape->type_tag();
+    if (tag == S2Shape::kNoTypeTag) {
+      S2_LOG(DFATAL) << "Unsupported S2Shape type: " << tag;
+      return false;
+    }
     sub_encoder->Ensure(Encoder::kVarintMax32);
-    sub_encoder->put_varint32(shape->type_tag());
-    if (!shape_encoder(*shape, sub_encoder)) return false;
+    sub_encoder->put_varint32(tag);
+    shape_encoder(*shape, sub_encoder);
   }
   shape_vector.Encode(encoder);
   return true;
@@ -183,10 +220,34 @@ VectorShapeFactory SingletonShapeFactory(std::unique_ptr<S2Shape> shape) {
   return VectorShapeFactory(std::move(shapes));
 }
 
+// An S2Shape that simply wraps some other shape.
+class WrappedShape : public S2Shape {
+ public:
+  explicit WrappedShape(S2Shape* shape) : shape_(*shape) {}
+  // S2Shape interface:
+  int num_edges() const final { return shape_.num_edges(); }
+  Edge edge(int e) const final { return shape_.edge(e); }
+  int dimension() const final { return shape_.dimension(); }
+  ReferencePoint GetReferencePoint() const final {
+    return shape_.GetReferencePoint();
+  }
+  int num_chains() const final { return shape_.num_chains(); }
+  Chain chain(int i) const final { return shape_.chain(i); }
+  Edge chain_edge(int i, int j) const final {
+    return shape_.chain_edge(i, j);
+  }
+  ChainPosition chain_position(int e) const final {
+    return shape_.chain_position(e);
+  }
+
+ private:
+  const S2Shape& shape_;
+};
+
 unique_ptr<S2Shape> WrappedShapeFactory::operator[](int shape_id) const {
   S2Shape* shape = index_.shape(shape_id);
   if (shape == nullptr) return nullptr;
-  return make_unique<S2WrappedShape>(shape);
+  return make_unique<WrappedShape>(shape);
 }
 
 }  // namespace s2shapeutil

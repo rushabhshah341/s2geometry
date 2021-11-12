@@ -21,9 +21,7 @@
 #define S2_UTIL_HASH_MIX_H_
 
 #include <cstddef>
-
 #include <limits>
-
 
 // Fast mixing of hash values -- not strong enough for fingerprinting.
 // May change from time to time.
@@ -71,7 +69,6 @@ class HashMix {
              (hash_ >> (std::numeric_limits<size_t>::digits - 19))) + val;
   }
   size_t get() const { return hash_; }
-
  private:
   size_t hash_;
 };

@@ -33,6 +33,7 @@
 #include "s2/s2distance_target.h"
 #include "s2/s2region_coverer.h"
 #include "s2/util/gtl/dense_hash_set.h"
+#include "s2/util/hash/mix.h"
 
 // S2ClosestCellQueryBase is a templatized class for finding the closest
 // (cell_id, label) pairs in an S2CellIndex to a given target.  It is not
@@ -329,7 +330,9 @@ class S2ClosestCellQueryBase {
   bool avoid_duplicates_;
   struct LabelledCellHash {
     size_t operator()(LabelledCell x) const {
-      return absl::HashOf(x.cell_id.id(), x.label);
+      HashMix mix(x.cell_id.id());
+      mix.Mix(x.label);
+      return mix.get();
     }
   };
   gtl::dense_hash_set<LabelledCell, LabelledCellHash> tested_cells_;

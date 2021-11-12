@@ -196,7 +196,9 @@ bool S2MaxDistanceShapeIndexTarget::UpdateMinDistance(
   query_->mutable_options()->set_min_distance(S1ChordAngle(*min_dist));
   S2FurthestEdgeQuery::PointTarget target(p);
   S2FurthestEdgeQuery::Result r = query_->FindFurthestEdge(&target);
-  if (r.is_empty()) return false;
+  if (r.shape_id() < 0) {
+    return false;
+  }
   *min_dist = S2MaxDistance(r.distance());
   return true;
 }
@@ -206,7 +208,7 @@ bool S2MaxDistanceShapeIndexTarget::UpdateMinDistance(
   query_->mutable_options()->set_min_distance(S1ChordAngle(*min_dist));
   S2FurthestEdgeQuery::EdgeTarget target(v0, v1);
   S2FurthestEdgeQuery::Result r = query_->FindFurthestEdge(&target);
-  if (r.is_empty()) return false;
+  if (r.shape_id() < 0) return false;
   *min_dist = S2MaxDistance(r.distance());
   return true;
 }
@@ -216,7 +218,7 @@ bool S2MaxDistanceShapeIndexTarget::UpdateMinDistance(
   query_->mutable_options()->set_min_distance(S1ChordAngle(*min_dist));
   S2FurthestEdgeQuery::CellTarget target(cell);
   S2FurthestEdgeQuery::Result r = query_->FindFurthestEdge(&target);
-  if (r.is_empty()) return false;
+  if (r.shape_id() < 0) return false;
   *min_dist = S2MaxDistance(r.distance());
   return true;
 }
